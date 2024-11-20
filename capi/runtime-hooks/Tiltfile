@@ -1,0 +1,154 @@
+# -*- mode: Python -*-
+
+# For more on Extensions, see: https://docs.tilt.dev/extensions.html
+load('ext://uibutton', 'cmd_button', 'location')
+load('ext://restart_process', 'docker_build_with_restart')
+
+docker_build_with_restart(
+  'ghcr.io/kahirokunn/runtime-hooks',
+  '.',
+  entrypoint=['/app/runtime-hooks'],
+  dockerfile='Dockerfile.tilt',
+  live_update=[
+    sync('./server', '/app'),
+    run('cd /app && go build -o runtime-hooks main.go'),
+  ],
+)
+
+k8s_yaml(helm(
+  './charts/runtime-hooks',
+  name='runtime-hooks',
+))
+
+k8s_resource(workload='runtime-hooks', port_forwards=9443, labels="cluster-api")
+
+cmd_button(
+    name="discovery_request",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/discovery' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoveryRequest"}') | jq""",
+    ],
+    text="Discovery Request",
+    icon_name="webhook",
+)
+
+cmd_button(
+    name="after_cluster_upgrade",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/afterclusterupgrade/after-cluster-upgrade' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"AfterClusterUpgradeRequest","cluster":{"apiVersion":"cluster.x-k8s.io/v1beta1","kind":"Cluster","metadata":{"name":"test-cluster","namespace":"default"}},"kubernetesVersion":"v1.28.0"}') | jq""",
+    ],
+    text="After Cluster Upgrade",
+    icon_name="upgrade",
+)
+
+cmd_button(
+    name="after_controlplane_initialized",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/aftercontrolplaneinitialized/after-control-plane-initialized' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"AfterControlPlaneInitializedRequest","cluster":{"apiVersion":"cluster.x-k8s.io/v1beta1","kind":"Cluster","metadata":{"name":"test-cluster","namespace":"default"}}}') | jq""",
+    ],
+    text="After ControlPlane Initialized",
+    icon_name="done_all",
+)
+
+cmd_button(
+    name="after_controlplane_upgrade",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/aftercontrolplaneupgrade/after-control-plane-upgrade' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"AfterControlPlaneUpgradeRequest","cluster":{"apiVersion":"cluster.x-k8s.io/v1beta1","kind":"Cluster","metadata":{"name":"test-cluster","namespace":"default"}},"kubernetesVersion":"v1.28.0"}') | jq""",
+    ],
+    text="After ControlPlane Upgrade",
+    icon_name="update",
+)
+
+cmd_button(
+    name="before_cluster_create",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/beforeclustercreate/before-cluster-create' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"BeforeClusterCreateRequest","cluster":{"apiVersion":"cluster.x-k8s.io/v1beta1","kind":"Cluster","metadata":{"name":"test-cluster","namespace":"default"}}}') | jq""",
+    ],
+    text="Before Cluster Create",
+    icon_name="add_circle",
+)
+
+cmd_button(
+    name="before_cluster_delete",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/beforeclusterdelete/before-cluster-delete' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"BeforeClusterDeleteRequest","cluster":{"apiVersion":"cluster.x-k8s.io/v1beta1","kind":"Cluster","metadata":{"name":"test-cluster","namespace":"default"}}}') | jq""",
+    ],
+    text="Before Cluster Delete",
+    icon_name="delete",
+)
+
+cmd_button(
+    name="before_cluster_upgrade",
+    resource="(Tiltfile)",
+    # location=location.NAV,
+    argv=[
+        "bash",
+        "-c",
+        """kubectl create --raw '/api/v1/namespaces/default/services/https:runtime-hooks:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/beforeclusterupgrade/before-cluster-upgrade' -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"BeforeClusterUpgradeRequest","cluster":{"apiVersion":"cluster.x-k8s.io/v1beta1","kind":"Cluster","metadata":{"name":"test-cluster","namespace":"default"}},"fromKubernetesVersion":"v1.27.0","toKubernetesVersion":"v1.28.0"}') | jq""",
+    ],
+    text="Before Cluster Upgrade",
+    icon_name="system_update",
+)
+
+cmd_button(
+    name="create_cluster",
+    resource="(Tiltfile)",
+    location=location.NAV,
+    argv=[
+        "sh",
+        "-c",
+        "create_cluster.sh",
+    ],
+    text="Create Cluster",
+    icon_name="cloud",
+)
+
+cmd_button(
+    name="delete_cluster",
+    resource="(Tiltfile)",
+    location=location.NAV,
+    argv=[
+        "sh",
+        "-c",
+        "kubectl delete cluster my-cluster",
+    ],
+    text="Delete Cluster",
+    icon_name="cloud_off",
+)
+
+# kubectl port-forward svc/hubble-ui 8081:80 -n kube-system は自分で実行してください
+cmd_button(
+    name="open-hubble-ui",
+    resource="(Tiltfile)",
+    location=location.NAV,
+    argv=[
+        "sh",
+        "-c",
+        "open http://localhost:8081/?namespace=default",
+    ],
+    text="Open Hubble UI",
+    icon_name="web",
+)

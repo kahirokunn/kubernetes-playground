@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: runtime-webhook
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 9443
+        args:
+        - "--profiler-address=localhost:6060"
+        - "-v=10"
+        # - "--logging-format=json"
+        env:
+        - name: WEBHOOK_PORT
+          value: "9443"
+        - name: WEBHOOK_CERT_DIR
+          value: "/tmp/k8s-webhook-server/serving-certs/"
+        volumeMounts:
+        - name: webhook-cert
+          mountPath: /tmp/k8s-webhook-server/serving-certs/
+          readOnly: true
+      volumes:
+      - name: webhook-cert
+        secret:
+          secretName: {{ .Release.Name }}-cert
