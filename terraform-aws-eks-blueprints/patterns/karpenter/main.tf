@@ -1,3 +1,5 @@
+# Modifications made to comply with the Apache License. Changes include extracting hard-coded values into variables.
+
 terraform {
   required_version = ">= 1.3"
 
@@ -8,20 +10,17 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">= 2.9"
+      version = ">= 2.16"
+    }
+    kubectl = {
+      source  = "alekc/kubectl"
+      version = ">= 2.0.0"
     }
   }
-
-  # ##  Used for end-to-end testing on project; update to suit your needs
-  # backend "s3" {
-  #   bucket = "terraform-ssp-github-actions-state"
-  #   region = "us-west-2"
-  #   key    = "e2e/karpenter/terraform.tfstate"
-  # }
 }
 
 provider "aws" {
-  region = local.region
+  region = var.region
 }
 
 # This provider is required for ECR to authenticate with public repos. Please note ECR authentication requires us-east-1 as region hence its hardcoded below.
@@ -48,11 +47,6 @@ provider "helm" {
 ################################################################################
 # Common data/locals
 ################################################################################
-
-data "aws_ecrpublic_authorization_token" "token" {
-  provider = aws.ecr
-}
-
 data "aws_availability_zones" "available" {
   # Do not include local zones
   filter {
@@ -61,15 +55,28 @@ data "aws_availability_zones" "available" {
   }
 }
 
-locals {
-  name   = "ex-${basename(path.cwd)}"
-  region = "us-west-2"
+variable "name" {
+  description = "The name prefix for the EKS cluster."
+  type        = string
+}
 
-  vpc_cidr = "10.0.0.0/16"
-  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+variable "region" {
+  description = "The AWS region where resources will be created."
+  type        = string
+  default     = "ap-northeast-1"
+}
+
+variable "vpc_cidr" {
+  description = "The CIDR block for the VPC."
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+locals {
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
 
   tags = {
-    Blueprint  = local.name
-    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints"
+    Blueprint  = var.name
+    GithubRepo = "github.com/kahirokunn/kubernetes-playground"
   }
 }

@@ -1,3 +1,5 @@
+# Modifications made to comply with the Apache License. Changes include extracting hard-coded values into variables.
+
 locals {
   namespace = "karpenter"
 }
@@ -16,7 +18,7 @@ module "karpenter" {
 
   # Name needs to match role name passed to the EC2NodeClass
   node_iam_role_use_name_prefix = false
-  node_iam_role_name            = local.name
+  node_iam_role_name            = var.name
 
   # EKS Fargate does not support pod identity
   create_pod_identity_association = false
@@ -31,15 +33,15 @@ module "karpenter" {
 ################################################################################
 
 resource "helm_release" "karpenter" {
-  name                = "karpenter"
-  namespace           = local.namespace
-  create_namespace    = true
-  repository          = "oci://public.ecr.aws/karpenter"
-  repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-  repository_password = data.aws_ecrpublic_authorization_token.token.password
-  chart               = "karpenter"
-  version             = "1.0.2"
-  wait                = false
+  name             = "karpenter"
+  namespace        = local.namespace
+  create_namespace = true
+  repository       = "oci://public.ecr.aws/karpenter"
+  chart            = "karpenter"
+  version          = "1.1.0"
+  wait             = true
+  atomic           = true
+  cleanup_on_fail  = true
 
   values = [
     <<-EOT

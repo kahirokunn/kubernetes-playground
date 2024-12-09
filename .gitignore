@@ -54,3 +54,7 @@ Temporary Items
 go.work
 
 capi/runtime-hooks/cluster-api
+
+.terraform
+.terraform.lock.hcl
+.envrc
